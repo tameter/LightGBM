@@ -1,19 +1,20 @@
 ﻿version: 2.1.2.{build}
 
 configuration:  # a trick to construct a build matrix
-  - 3.5
-  - 3.6
+  - Release
 
 environment:
   matrix:
     - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
       COMPILER: MSVC
-    - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2015
-      COMPILER: MINGW
 
 clone_depth: 50
 
 install:
+  - git clone --recursive https://github.com/apache/spark.git
+  - cd spark
+  - ps: .\dev\appveyor-install-dependencies.ps1
+  - cd %APPVEYOR_BUILD_FOLDER%
   - git submodule update --init --recursive  # get `compute` folder
   - set PATH=%PATH:C:\Program Files\Git\usr\bin;=%  # delete sh.exe from PATH (mingw32-make fix)
   - set PATH=C:\mingw-w64\x86_64-6.3.0-posix-seh-rt_v5-rev1\mingw64\bin;%PATH%
@@ -35,7 +36,7 @@ install:
 
 build_script:
   - mkdir %APPVEYOR_BUILD_FOLDER%\build && cd %APPVEYOR_BUILD_FOLDER%\build
-  - cmake -DCMAKE_GENERATOR_PLATFORM=x64 .. && cmake --build . --target ALL_BUILD --config Release
+  - cmake -DCMAKE_GENERATOR_PLATFORM=x64 -DUSE_HDFS=ON .. && cmake --build . --target ALL_BUILD --config Release
 
 test_script:
   - pytest %APPVEYOR_BUILD_FOLDER%\tests\c_api_test\test_.py
